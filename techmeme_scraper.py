@@ -11,6 +11,7 @@ class TechMemeScraper:
 
     def __init__(self,local:bool) -> None:
         self.local = local
+        self.logger = logging.getLogger()
 
     def get_file_path(self):
         current_date = datetime.now()
@@ -30,9 +31,9 @@ class TechMemeScraper:
             request = requests.get('https://techmeme.com/river')
             return request
         except requests.exceptions.ConnectionError as err_con:
-            logging.error(err_con) 
+            self.logger.error(err_con) 
         except requests.exceptions.RequestException as e_excep:
-            logging.error(e_excep)
+            self.logger.error(e_excep)
 
     def get_soup(self):
         request = self.get_river()
@@ -43,9 +44,11 @@ class TechMemeScraper:
         try:
             s3 = boto3.client('s3')
             file_path = self.get_file_path()
-            s3.upload_file(f'{file_path[0]}','techmeme-headlines',file_path[1])                       
+            s3.upload_file(f'{file_path[0]}','techmeme-headlines',file_path[1])
+            self.logger.setLevel('INFO')
+            self.logger.info('into S3!')                       
         except ClientError as e:
-            logging.error(e)
+            self.logger.error(e)
         
     def parse_river_data(self):    
         soup = self.get_soup()
@@ -56,6 +59,6 @@ class TechMemeScraper:
                 news_items.append((row.text))
         news_items_df = pd.DataFrame(news_items,columns=['raw_techmeme'])
         news_items_df['raw_techmeme'] = news_items_df['raw_techmeme'].str.replace('^.*•','',regex=True) #removing the time stamp
-        news_items_df[['pub/author','headline']] = news_items_df['raw_techmeme'].str.split(':',expand=True,n=1) # splitting the raw column
-        json_str = news_items_df.to_json(json_title[0])
+        news_items_df[['pub_author','headline']] = news_items_df['raw_techmeme'].str.split(':',expand=True,n=1) # splitting the raw column
+        json_str = news_items_df.to_json(json_title[0],orient='table')
         return json_str
