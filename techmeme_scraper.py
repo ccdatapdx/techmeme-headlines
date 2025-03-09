@@ -5,20 +5,20 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import date
 
 class TechMemeScraper:
 
     def __init__(self,local:bool) -> None:
         self.local = local
         self.logger = logging.getLogger()
+        self.current_date = date.today() 
 
     def get_file_path(self):
-        current_date = datetime.now()
         current_dir = os.getcwd()
         lambda_dir = '/tmp'
-        s3_key = f'{current_date}_TechMeme.json'
-        current_date = datetime.strftime(current_date,"%Y.%m.%d")
+        s3_key = f'{self.current_date}_TechMeme.json'
+        current_date = self.current_date.strftime("%Y.%m.%d")
         if self.local:
             current_dir_path = f'{current_dir}/{current_date}_TechMeme.json'
             return (current_dir_path,s3_key)
@@ -54,11 +54,22 @@ class TechMemeScraper:
         soup = self.get_soup()
         json_title = self.get_file_path()
         news_items=[]
+        news_date = []
         for row in soup.find_all('table')[1]: #selects the most recent date on the page
             if row != '\n':
                 news_items.append((row.text))
+        for row in soup.find_all('h2')[0]:
+            news_date.append(row)
         news_items_df = pd.DataFrame(news_items,columns=['raw_techmeme'])
-        news_items_df['raw_techmeme'] = news_items_df['raw_techmeme'].str.replace('^.*•','',regex=True) #removing the time stamp
-        news_items_df[['pub_author','headline']] = news_items_df['raw_techmeme'].str.split(':',expand=True,n=1) # splitting the raw column
-        json_str = news_items_df.to_json(json_title[0],orient='table')
+        news_items_df = news_items_df.merge(pd.Series(news_date,name='news_date'), how='cross')
+        news_items_df['raw_techmeme'] = news_items_df['raw_techmeme'].str.replace(
+                                                                    '^.*•','',regex=True
+                                                                    ) #removing the time stamp
+        news_items_df[['pub_author','headline']] = news_items_df['raw_techmeme'].str.split(
+                                                                    ':',expand=True,n=1
+                                                                    ) # splitting the raw column
+        news_items_df['pub_author'] = news_items_df['pub_author'].str.split('/',expand=False)
+        news_items_df['author'] = news_items_df['pub_author'].apply(lambda x: x[0] if len(x) > 1 else None)
+        news_items_df['pub'] = news_items_df['pub_author'].apply(lambda x: x[0] if len(x) == 1 else x[1])
+        json_str = news_items_df.to_json(json_title[0])
         return json_str
