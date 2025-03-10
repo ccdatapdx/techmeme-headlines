@@ -4,3 +4,4 @@ venv
 project_notes.txt
 test.py
 local_test.py
+.env

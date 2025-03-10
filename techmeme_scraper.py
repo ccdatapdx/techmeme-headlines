@@ -3,27 +3,30 @@ import pandas as pd
 import logging
 import os
 import boto3
+import zoneinfo
 from botocore.exceptions import ClientError
 from bs4 import BeautifulSoup
-from datetime import date
+from datetime import datetime
 
 class TechMemeScraper:
 
     def __init__(self,local:bool) -> None:
         self.local = local
         self.logger = logging.getLogger()
-        self.current_date = date.today() 
+        self.time_zone = zoneinfo.ZoneInfo("America/Los_Angeles")
+        self.current_date = datetime.now(
+                            tz=self.time_zone
+                            ).date().strftime('%Y-%m-%d') 
 
     def get_file_path(self):
         current_dir = os.getcwd()
         lambda_dir = '/tmp'
         s3_key = f'{self.current_date}_TechMeme.json'
-        current_date = self.current_date.strftime("%Y.%m.%d")
         if self.local:
-            current_dir_path = f'{current_dir}/{current_date}_TechMeme.json'
+            current_dir_path = f'{current_dir}/{self.current_date}_TechMeme.json'
             return (current_dir_path,s3_key)
         else:
-            lambda_dir_path = f'{lambda_dir}/{current_date}_TechMeme.json'
+            lambda_dir_path = f'{lambda_dir}/{self.current_date}_TechMeme.json'
             return (lambda_dir_path,s3_key)
             
     def get_river(self):
