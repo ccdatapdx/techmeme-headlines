@@ -74,5 +74,6 @@ class TechMemeScraper:
         news_items_df['pub_author'] = news_items_df['pub_author'].str.split('/',expand=False)
         news_items_df['author'] = news_items_df['pub_author'].apply(lambda x: x[0] if len(x) > 1 else None)
         news_items_df['pub'] = news_items_df['pub_author'].apply(lambda x: x[0] if len(x) == 1 else x[1])
+        news_items_df = news_items_df.drop(columns=["pub_author"])
         json_str = news_items_df.to_json(json_title[0])
         return json_str
