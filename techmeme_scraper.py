@@ -52,6 +52,14 @@ class TechMemeScraper:
             self.logger.info('into S3!')                       
         except ClientError as e:
             self.logger.error(e)
+    
+    def remove_whitespace(self,df:pd.DataFrame):
+        for i in df.columns:
+            if df[i].dtype == 'object':
+                df[i] = df[i].map(str.strip())
+            else:
+                pass
+        return df 
         
     def parse_river_data(self):    
         soup = self.get_soup()
@@ -75,5 +83,6 @@ class TechMemeScraper:
         news_items_df['author'] = news_items_df['pub_author'].apply(lambda x: x[0] if len(x) > 1 else None)
         news_items_df['pub'] = news_items_df['pub_author'].apply(lambda x: x[0] if len(x) == 1 else x[1])
         news_items_df = news_items_df.drop(columns=["pub_author"])
+        news_items_df = self.remove_whitespace(news_items_df)
         json_str = news_items_df.to_json(json_title[0])
         return json_str
