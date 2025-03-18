@@ -56,10 +56,11 @@ class TechMemeScraper:
     def remove_whitespace(self,df:pd.DataFrame):
         for i in df.columns:
             if df[i].dtype == 'object':
-                df[i] = df[i].map(str.strip())
+                df[i] = df[i].str.strip()
             else:
                 pass
-        return df 
+        return df
+         
         
     def parse_river_data(self):    
         soup = self.get_soup()
